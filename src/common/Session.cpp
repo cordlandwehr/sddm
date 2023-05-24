@@ -24,6 +24,9 @@
 #include <QSettings>
 #include <QLocale>
 #include <QRegularExpression>
+#include <QtGlobal>
+#include <QtCore/QtGlobal>
+#include <QtCore/QStringView>
 
 #include "Configuration.h"
 #include "Session.h"
@@ -167,7 +170,9 @@ namespace SDDM {
             return;
 
         QSettings settings(m_fileName, QSettings::IniFormat);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         settings.setIniCodec("UTF-8");
+#endif
         QStringList locales = { QLocale().name() };
         if (auto clean = QLocale().name().remove(QRegularExpression(QLatin1String("_.*"))); clean != locales.constFirst()) {
             locales << clean;
@@ -214,8 +219,7 @@ namespace SDDM {
     QProcessEnvironment SDDM::Session::parseEnv(const QString &list)
     {
         QProcessEnvironment env;
-
-        const QVector<QStringRef> entryList = list.splitRef(QLatin1Char(','), Qt::SkipEmptyParts);
+        const auto entryList = QStringView{list}.split(u',');
         for (const auto &entry: entryList) {
             int midPoint = entry.indexOf(QLatin1Char('='));
             if (midPoint < 0) {

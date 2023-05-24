@@ -28,6 +28,7 @@
 #include "VirtualTerminal.h"
 #include "XAuth.h"
 
+#include <functional>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <errno.h>
@@ -47,6 +48,9 @@ namespace SDDM {
         : QProcess(parent)
     {
         connect(this, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &UserSession::finished);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        setChildProcessModifier(std::bind(&UserSession::childModifier, this));
+#endif
     }
 
     bool UserSession::start() {
@@ -175,7 +179,11 @@ namespace SDDM {
         return m_path;
     }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    void UserSession::childModifier() {
+#else
     void UserSession::setupChildProcess() {
+#endif
         // Session type
         QString sessionType = processEnvironment().value(QStringLiteral("XDG_SESSION_TYPE"));
         QString sessionClass = processEnvironment().value(QStringLiteral("XDG_SESSION_CLASS"));
@@ -208,7 +216,7 @@ namespace SDDM {
             if (setsid() < 0) {
                 qCritical("Failed to set pid %lld as leader of the new session and process group: %s",
                           QCoreApplication::applicationPid(), strerror(errno));
-                exit(Auth::HELPER_OTHER_ERROR);
+                _exit(Auth::HELPER_OTHER_ERROR);
             }
 
             // take control of the tty
@@ -216,7 +224,7 @@ namespace SDDM {
                 if (ioctl(STDIN_FILENO, TIOCSCTTY) < 0) {
                     const auto error = strerror(errno);
                     qCritical().nospace() << "Failed to take control of " << ttyString << " (" << QFileInfo(ttyString).owner() << "): " << error;
-                    exit(Auth::HELPER_TTY_ERROR);
+                    _exit(Auth::HELPER_TTY_ERROR);
                 }
             }
 
