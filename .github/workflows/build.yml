@@ -28,8 +28,14 @@ jobs:
         compiler:
           - gcc
           - clang
+        qt:
+          - "qt5"
         include:
           - container-image: "docker.io/library/ubuntu:23.04"
+            compiler: clang
+            qt: "qt6"
+          - container-image: "docker.io/library/ubuntu:23.04"
+            compiler: gcc
             qt: "qt6"
     runs-on: ubuntu-latest
 
@@ -64,9 +70,9 @@ jobs:
           mkdir -p build
           cd build
           if [ "${{ matrix.qt }}" = "qt6" ]; then
-            QT6_BUILD=ON
+            QT6_WITH_BUILD=ON
           else
-            QT6_BUILD=OFF
+            QT6_WITH_BUILD=OFF
           fi
           if [ "${{ matrix.compiler }}" = "clang" ]; then
             export CC=clang
@@ -80,7 +86,7 @@ jobs:
           fi
           cmake .. \
             -DBUILD_MAN_PAGES:BOOL=ON \
-            -DBUILD_WITH_QT6:BOOL=${QT6_BUILD} \
+            -DBUILD_WITH_QT6:BOOL=${QT6_WITH_BUILD} \
             -DLOGIN_DEFS_PATH:PATH="${LOGIN_DEFS_PATH}"
           make -j $(getconf _NPROCESSORS_ONLN)
           make install
